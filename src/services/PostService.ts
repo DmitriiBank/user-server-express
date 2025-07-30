@@ -1,9 +1,11 @@
-import {User} from "../model/userTypes.js";
 
-export interface  UserService {
-    addUser(user:User): boolean;
-    updateUser(newUserData:User): boolean;
-    removeUser (userId:number): User|null;
-    getAllUsers (): object;
-    getUser (userId:number): User|null;
+import {PostType} from "../model/postTypes.js";
+
+export interface  PostService {
+    addPost(post:PostType): boolean;
+    updatePost(newPostData:PostType): boolean;
+    removePost (postId:string): PostType|null;
+    getAllPosts (): object;
+    getPostById (postId:string): PostType|null;
+    getPostsByUserName(userName:string): PostType|null;
 }

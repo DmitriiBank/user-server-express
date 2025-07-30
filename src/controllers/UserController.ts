@@ -1,8 +1,9 @@
-import {UserService} from "../service/UserService.js";
+import {UserService} from "../services/UserService.js";
 import {parseBody} from "../utils/tools.js";
 import {User} from "../model/userTypes.js";
 import {IncomingMessage, ServerResponse} from "node:http";
-import {myLogger} from "../events/logger.js";
+import {myLogger} from "../utils/logger.js";
+import {baseUrl} from "../config/userServerConfig.js";
 
 export class UserController {
     constructor(private userService: UserService) {
@@ -14,10 +15,12 @@ export class UserController {
         if (isSuccess) {
             res.writeHead(201, {"Content-Type": "text/plain"})
             res.end('User was added')
+            myLogger.log(`User created with id ${body.id}`)
             myLogger.save(`User created with id ${body.id}`)
         } else {
             res.writeHead(409, {"Content-Type": "text/plain"})
             res.end('User already exists')
+            myLogger.save(`Conflict: user with id ${body.id} already exists`)
             myLogger.save(`Conflict: user with id ${body.id} already exists`)
         }
     }
@@ -49,10 +52,12 @@ export class UserController {
             res.writeHead(200, {"Content-Type": "application/json"});
             res.end(JSON.stringify(isDelete));
             // emitter.emit('user_removed')
+            myLogger.log(`User with id ${body.id} was deleted`)
             myLogger.save(`User with id ${body.id} was deleted`)
         } else {
             res.writeHead(404, {"Content-Type": "text/plain"});
             res.end("User not found");
+            myLogger.log(`Conflict: user with id ${body.id} not found`)
             myLogger.save(`Conflict: user with id ${body.id} not found`)
         }
     }
@@ -64,8 +69,9 @@ export class UserController {
         myLogger.log("All users fetched")
     }
 
-    async getUser(req: IncomingMessage, res: ServerResponse, parsedUrl: URL) {
-        const id = parsedUrl.searchParams.get('userId')
+    async getUser(req: IncomingMessage, res: ServerResponse) {
+        const url = new URL (req.url!, baseUrl)
+        const id = url.searchParams.get('id')
         if (!id) {
             res.writeHead(404, {"Content-Type": "text/plain"});
             res.end("User not found");
@@ -77,10 +83,11 @@ export class UserController {
         if (founded !== null) {
             res.writeHead(200, {'Content-Type': 'application/json'})
             res.end(JSON.stringify(founded))
-            myLogger.save(`Fetched user with id: ${id}`)
+            myLogger.log(`Fetched user with id: ${id}`)
         } else {
             res.writeHead(404, {'Content-Type': 'text/html'})
             res.end('User not found')
+            myLogger.log(`User with id ${id} not found`);
         }
 
     }
