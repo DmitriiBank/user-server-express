@@ -1,6 +1,7 @@
 import {PostService} from "./PostService.js";
 import {PostType} from "../model/postTypes.js";
-import {users} from "./UserServiceEmbeddedImpl.js";
+import {userService} from "../server.js";
+import {User} from "../model/userTypes.js";
 
 
 export class PostServiceEmbeddedImpl implements PostService {
@@ -12,11 +13,8 @@ export class PostServiceEmbeddedImpl implements PostService {
     }]
 
     addPost(post: PostType): boolean {
-        if (this.posts.findIndex((p: PostType) => p.id === post.id) === -1) {
-            this.posts.push(post)
-            return true
-        }
-        return false
+        this.posts.push(post)
+        return true
     }
 
     getAllPosts(): PostType[] {
@@ -45,11 +43,12 @@ export class PostServiceEmbeddedImpl implements PostService {
         return false
     }
 
-    getPostsByUserName(userName: string): PostType | null {
-        const user = users.find(user => user.userName === userName);
-        if (user)
-            return this.posts.find(post => post.userId === user.id.toString()) || null;
-        return null
+    getPostsByUserName(userName: string): PostType[]{
+        const users = userService.getAllUsers();
+        const user = Object.values(users).find(user => user.userName === userName);
+        if (!user)
+            return []
+        return this.posts.filter(post => post.userId == user.id.toString());
     }
 };
 

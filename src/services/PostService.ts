@@ -7,5 +7,5 @@ export interface  PostService {
     removePost (postId:string): PostType|null;
     getAllPosts (): object;
     getPostById (postId:string): PostType|null;
-    getPostsByUserName(userName:string): PostType|null;
+    getPostsByUserName(userName:string): PostType[];
 }

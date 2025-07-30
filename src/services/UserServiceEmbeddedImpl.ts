@@ -5,43 +5,42 @@ import fs from "fs";
 import {myLogger} from "../utils/logger.js";
 
 
-export let users: User[] = [{id: 1, userName: "Bond"}]
-
 export class UserServiceEmbeddedImpl implements UserService, UserFilePersistenceService {
+    private users: User[] = [{id: 1, userName: "Bond"}]
     private rs = fs.createReadStream('data.txt', {
         encoding: "utf-8",
         highWaterMark: 24
     })
 
     addUser(user: User): boolean {
-        if (users.findIndex((u: User) => u.id === user.id) === -1) {
-            users.push(user)
+        if (this.users.findIndex((u: User) => u.id === user.id) === -1) {
+            this.users.push(user)
             return true
         }
         return false
     }
 
     getAllUsers(): User[] {
-        return [...users];
+        return [...this.users];
     }
 
     getUser(userId: number): User | null {
-        return users.find(user => user.id === userId) || null;
+        return this.users.find(user => user.id === userId) || null;
     }
 
     removeUser(userId: number): User | null {
-        const index = users.findIndex(user => user.id === userId);
+        const index = this.users.findIndex(user => user.id === userId);
         if (index !== -1) {
-            const res = users.splice(index, 1)
+            const res = this.users.splice(index, 1)
             return res[0]
         }
         return null
     }
 
     updateUser(newUserData: User): boolean {
-        const index = users.findIndex(user => user.id === newUserData.id);
+        const index = this.users.findIndex(user => user.id === newUserData.id);
         if (index !== -1) {
-            users[index] = newUserData
+            this.users[index] = newUserData
             return true
         }
         return false
@@ -60,17 +59,17 @@ export class UserServiceEmbeddedImpl implements UserService, UserFilePersistence
 
         this.rs.on('end', () => {
             if (result) {
-                users = JSON.parse(result)
+                this.users = JSON.parse(result)
                 myLogger.log("Data was restored from file")
                 myLogger.save("Data was restored from file")
                 this.rs.close()
             } else {
-                users = [{id: 3, userName: "Panikovsky"}]
+                this.users = [{id: 3, userName: "Panikovsky"}]
             }
         })
 
         this.rs.on('error', () => {
-            users = [{id: 2, userName: "Bender"}]
+            this.users = [{id: 2, userName: "Bender"}]
             myLogger.log("File to restored not found")
         })
         return "Ok";
@@ -81,7 +80,7 @@ export class UserServiceEmbeddedImpl implements UserService, UserFilePersistence
             try {
                 const ws = fs.createWriteStream('data.txt', {flags: "w"})
                 myLogger.log("Ws created")
-                const data = JSON.stringify(users);
+                const data = JSON.stringify(this.users);
                 myLogger.log(data)
                 ws.write((data), (e) => {
                     if (e)
@@ -107,7 +106,7 @@ export class UserServiceEmbeddedImpl implements UserService, UserFilePersistence
 
     saveDataToFileSync(): string {
         try {
-            const data = JSON.stringify(users);
+            const data = JSON.stringify(this.users);
             fs.writeFileSync('data.txt', data, 'utf-8');
             myLogger.log("Data was saved to file synchronously");
             myLogger.save("Data was saved to file synchronously");
