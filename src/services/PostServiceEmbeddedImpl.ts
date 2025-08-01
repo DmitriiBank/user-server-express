@@ -1,13 +1,13 @@
 import {PostService} from "./PostService.js";
 import {PostType} from "../model/postTypes.js";
 import {userService} from "../server.js";
-import {User} from "../model/userTypes.js";
+import {HttpError} from "../errorHandler/HttpError.js";
 
 
 export class PostServiceEmbeddedImpl implements PostService {
     private posts: PostType[] = [{
-        id: "1",
-        userId: "1",
+        id: 1,
+        userId: 1,
         title: "Title",
         text: "Some text"
     }]
@@ -21,17 +21,18 @@ export class PostServiceEmbeddedImpl implements PostService {
         return [...this.posts];
     }
 
-    getPostById(postId: string): PostType | null {
-        return this.posts.find(post => post.id === postId) || null;
+    getPostById(postId: number): PostType {
+        const index = this.posts.findIndex(post => post.id === postId);
+        if (index === -1) throw new HttpError(404, "Post not found");
+        return this.posts[index]
     }
 
-    removePost(postId: string): PostType | null {
-        const index = this.posts.findIndex(post => post.id === postId);
-        if (index !== -1) {
-            const res = this.posts.splice(index, 1)
-            return res[0]
-        }
-        return null
+    removePost(id: number): PostType {
+        const index = this.posts.findIndex(item => item.id === id);
+        console.log(index);
+       // if (index === -1) throw new Error(JSON.stringify({status: 404, message: "Post not found"}));
+        if (index === -1) throw new HttpError(404, "Post not found");
+        return this.posts.splice(index, 1)[0]
     }
 
     updatePost(newPostData: PostType): boolean {
@@ -43,7 +44,7 @@ export class PostServiceEmbeddedImpl implements PostService {
         return false
     }
 
-    getPostsByUserName(userName: string): PostType[]{
+    getPostsByUserName(userName: string): PostType[] {
         const users = userService.getAllUsers();
         const user = Object.values(users).find(user => user.userName === userName);
         if (!user)

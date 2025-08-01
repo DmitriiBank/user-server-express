@@ -1,100 +1,88 @@
 import {UserService} from "../services/UserService.js";
-import {parseBody} from "../utils/tools.js";
 import {User} from "../model/userTypes.js";
-import {IncomingMessage, ServerResponse} from "node:http";
 import {myLogger} from "../utils/logger.js";
 import {baseUrl} from "../config/userServerConfig.js";
+import {Request,Response} from "express";
+import {parseBody} from "../utils/tools.js";
 
 export class UserController {
     constructor(private userService: UserService) {
     }
 
-    async addUser(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as User
+    async addUser(req: Request, res: Response) {
+        const body = req.body as User
         const isSuccess = this.userService.addUser(body);
         if (isSuccess) {
-            res.writeHead(201, {"Content-Type": "text/plain"})
-            res.end('User was added')
+            res.status(200).send('User was added')
             myLogger.log(`User created with id ${body.id}`)
             myLogger.save(`User created with id ${body.id}`)
         } else {
-            res.writeHead(409, {"Content-Type": "text/plain"})
-            res.end('User already exists')
+            res.status(409).send('User already exists')
             myLogger.save(`Conflict: user with id ${body.id} already exists`)
             myLogger.save(`Conflict: user with id ${body.id} already exists`)
         }
     }
 
-    async updateUser(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as User
+    async updateUser(req: Request, res: Response) {
+        const body = await parseBody(req) as User;
         if (!body || !body.id) {
-            res.writeHead(400, {"Content-Type": "text/plain"});
-            res.end("Invalid user data");
+            res.status(400).send("Invalid user data");
             myLogger.log("Invalid user data")
             return;
         }
         const isUpdated = this.userService.updateUser(body);
         if (isUpdated) {
-            res.writeHead(200, {"Content-Type": "text/plain"});
-            res.end("User was updated");
+            res.status(200).send("User was updated");
             myLogger.save(`User with id ${body.id} was updated`)
         } else {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("User not found");
+            res.status(404).send("User not found");
             myLogger.save(`Conflict: user with id ${body.id} not found`)
         }
     }
 
-    async removeUser(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as User
+    async removeUser(req: Request, res: Response) {
+        const body = req.body as User
         const isDelete = this.userService.removeUser(body.id);
         if (isDelete) {
-            res.writeHead(200, {"Content-Type": "application/json"});
-            res.end(JSON.stringify(isDelete));
+            res.status(200).send(JSON.stringify(isDelete));
             // emitter.emit('user_removed')
             myLogger.log(`User with id ${body.id} was deleted`)
             myLogger.save(`User with id ${body.id} was deleted`)
         } else {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("User not found");
+            res.status(404).send("User not found");
             myLogger.log(`Conflict: user with id ${body.id} not found`)
             myLogger.save(`Conflict: user with id ${body.id} not found`)
         }
     }
 
-    async getAllUsers(req: IncomingMessage, res: ServerResponse) {
+    async getAllUsers(req: Request, res: Response) {
         const users = this.userService.getAllUsers();
-        res.writeHead(200, {"Content-Type": "application/json"})
-        res.end(JSON.stringify(users))
+        res.status(200).send(JSON.stringify(users))
         myLogger.log("All users fetched")
     }
 
-    async getUser(req: IncomingMessage, res: ServerResponse) {
+    async getUser(req: Request, res: Response) {
         const url = new URL (req.url!, baseUrl)
         const id = url.searchParams.get('id')
         if (!id) {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("User not found");
+            res.status(404).send("User not found");
             myLogger.log("User not found")
             return
         }
 
         const founded = this.userService.getUser(+id);
         if (founded !== null) {
-            res.writeHead(200, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify(founded))
+            res.status(200).send(JSON.stringify(founded))
             myLogger.log(`Fetched user with id: ${id}`)
         } else {
-            res.writeHead(404, {'Content-Type': 'text/html'})
-            res.end('User not found')
+            res.status(404).send('User not found')
             myLogger.log(`User with id ${id} not found`);
         }
 
     }
 
-    async getLogArray(req: IncomingMessage, res: ServerResponse) {
+    async getLogArray(req: Request, res: Response) {
         const allLogs = myLogger.getLogArray()
-        res.writeHead(200, {'Content-Type': 'application/json'})
-        res.end(JSON.stringify(allLogs))
+        res.status(200).send(JSON.stringify(allLogs))
     }
 }

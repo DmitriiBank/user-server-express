@@ -1,120 +1,92 @@
 import {PostService} from "../services/PostService.js";
 import {parseBody} from "../utils/tools.js";
 import {PostType} from "../model/postTypes.js";
-import {IncomingMessage, ServerResponse} from "node:http";
 import {myLogger} from "../utils/logger.js";
 import {baseUrl} from "../config/userServerConfig.js";
+import {Request,Response} from "express";
 
 export class PostController {
     constructor(private postService: PostService) {
     }
 
-    async addPost(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as PostType
+    async addPost(req: Request, res: Response) {
+        const body = req.body as PostType
         const isSuccess = this.postService.addPost(body);
         if (isSuccess) {
-            res.writeHead(201, {"Content-Type": "text/plain"})
-            res.end('Post was added')
+            res.status(201).send('Post was added')
             myLogger.save(`Post created with id ${body.id}`)
         } else {
-            res.writeHead(409, {"Content-Type": "text/plain"})
-            res.end('Post already exists')
+            res.status(409).send('Post already exists')
             myLogger.save(`Conflict: post with id ${body.id} already exists`)
         }
     }
 
-    async updatePost(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as PostType
+    async updatePost(req: Request, res: Response) {
+        const body = req.body as PostType
         if (!body || !body.id) {
-            res.writeHead(400, {"Content-Type": "text/plain"});
-            res.end("Invalid post data");
+            res.status(400).send("Invalid post data");
             myLogger.log("Invalid post data")
             return;
         }
         const isUpdated = this.postService.updatePost(body);
         if (isUpdated) {
-            res.writeHead(200, {"Content-Type": "text/plain"});
-            res.end("Post was updated");
+            res.status(200).send("Post was updated");
             myLogger.save(`Post with id ${body.id} was updated`)
         } else {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("Post not found");
+            res.status(404).send("Post not found");
             myLogger.save(`Conflict: post with id ${body.id} not found`)
         }
     }
 
-    async removePost(req: IncomingMessage, res: ServerResponse) {
-        const body = await parseBody(req) as PostType
-        const isDelete = this.postService.removePost(body.id!);
+    async removePost(req: Request, res: Response) {
+        const postId = parseInt(req.params.id);
+        const isDelete = this.postService.removePost(postId);
         if (isDelete) {
-            res.writeHead(200, {"Content-Type": "application/json"});
-            res.end(JSON.stringify(isDelete));
-            myLogger.log(`Post with id ${body.id} was deleted`)
-            myLogger.save(`Post with id ${body.id} was deleted`)
+            res.status(200).send(JSON.stringify(isDelete));
+            myLogger.log(`Post with id ${postId} was deleted`)
+            myLogger.save(`Post with id ${postId} was deleted`)
         } else {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("Post not found");
-            myLogger.log(`Conflict: post with id ${body.id} not found`)
-            myLogger.save(`Conflict: post with id ${body.id} not found`)
+            res.status(200).send("Post not found");
+            myLogger.log(`Conflict: post with id ${postId} not found`)
+            myLogger.save(`Conflict: post with id ${postId} not found`)
         }
     }
 
-    async getAllPosts(req: IncomingMessage, res: ServerResponse) {
+    async getAllPosts(req: Request, res: Response) {
         const users = this.postService.getAllPosts();
-        res.writeHead(200, {"Content-Type": "application/json"})
-        res.end(JSON.stringify(users))
+        res.status(200).send(JSON.stringify(users))
         myLogger.log("All posts fetched")
     }
 
-    async getPostById(req: IncomingMessage, res: ServerResponse) {
-        const url = new URL (req.url!, baseUrl)
-        const id = url.searchParams.get('id')
-        if (!id) {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("Post not found");
-            myLogger.log("Post not found")
-            return
-        }
-
-        const founded = this.postService.getPostById(id);
-        if (founded !== null) {
-            res.writeHead(200, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify(founded))
-            myLogger.save(`Fetched post with id: ${id}`)
-        } else {
-            res.writeHead(404, {'Content-Type': 'text/html'})
-            res.end('Post not found')
-            myLogger.log(`Post with id ${id} not found`);
-        }
-
+    async getPostById(req: Request, res: Response) {
+        const postId = parseInt(req.params.id);
+        if (!postId)
+            res.status(404).send("Post not found");
+       res.json(this.postService.getPostById(postId));
     }
 
-    async getPostsByUserName(req: IncomingMessage, res: ServerResponse) {
+    async getPostsByUserName(req: Request, res: Response) {
         const url = new URL (req.url!, baseUrl)
         const userName = url.searchParams.get('userName')
         if (!userName) {
-            res.writeHead(404, {"Content-Type": "text/plain"});
-            res.end("Post not found");
+            res.status(404).send("Post not found");
             myLogger.log("Post not found")
             return
         }
 
         const founded = this.postService.getPostsByUserName(userName);
         if (founded !== null) {
-            res.writeHead(200, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify(founded))
+            res.status(200).send(JSON.stringify(founded))
             myLogger.save(`Fetched post with userName: ${userName}`)
         } else {
-            res.writeHead(404, {'Content-Type': 'text/html'})
-            res.end('Post not found')
+            res.status(200).send('Post not found')
             myLogger.log(`Post with userName: ${userName} not found`);
         }
 
     }
 
-    async getLogArray(req: IncomingMessage, res: ServerResponse) {
+    async getLogArray(req: Request, res: Response) {
         const allLogs = myLogger.getLogArray()
-        res.writeHead(200, {'Content-Type': 'application/json'})
-        res.end(JSON.stringify(allLogs))
+        res.status(200).send(JSON.stringify(allLogs))
     }
 }
