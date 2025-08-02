@@ -34,6 +34,4 @@ export const launchServer = () => {
         else
             res.status(500).send("Unknown server error!")
     })
-
-
 }

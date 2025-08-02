@@ -17,16 +17,18 @@ postRouter.use((req: Request, res: Response, next: NextFunction) => {
     next()
 })
 
-postRouter.get('/post/:id', asyncHandler(async(req: Request, res: Response) => {
+postRouter.get('/post/:id',  asyncHandler(async(req: Request, res: Response) => {
     const {id} = req.params
-    if (!id)
-       throw new Error('Post not found')
+    if (!id) throw new HttpError(400, 'Post not found')
     await postController.getPostById(req, res);
 }))
 
-postRouter.get('/', (req, res) => {
-    postController.getAllPosts(req, res)
-})
+postRouter.get('/', asyncHandler(async(req, res) => {
+    const postDto = req.body
+    const {error} = PostDtoSchema.validate(postDto)
+    if(error) throw new HttpError(400, error.message)
+    await postController.getAllPosts(req, res)
+}))
 
 postRouter.post('/', asyncHandler(async(req, res) => {
     const postDto = req.body
@@ -36,16 +38,25 @@ postRouter.post('/', asyncHandler(async(req, res) => {
 }))
 
 
-postRouter.delete('/post/:id', (req, res) => {
-    postController.removePost(req, res)
-})
+postRouter.delete('/post/:id', asyncHandler(async(req, res) => {
+    const postDto = req.body
+    const {error} = PostDtoSchema.validate(postDto)
+    if(error) throw new HttpError(400, error.message)
+    await postController.removePost(req, res)
+}))
 
-postRouter.put('/', async (req, res) => {
+postRouter.put('/', asyncHandler(async (req, res) => {
+    const postDto = req.body
+    const {error} = PostDtoSchema.validate(postDto)
+    if(error) throw new HttpError(400, error.message)
     await postController.updatePost(req, res)
-})
+}))
 
 
-postRouter.get('/user', (req, res) => {
-    postController.getPostsByUserName(req, res)
-})
+postRouter.get('/user', asyncHandler(async (req, res) => {
+    const postDto = req.body
+    const {error} = PostDtoSchema.validate(postDto)
+    if(error) throw new HttpError(400, error.message)
+    await postController.getPostsByUserName(req, res)
+}))
 

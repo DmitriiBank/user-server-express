@@ -3,6 +3,7 @@ import {User} from "../model/userTypes.js";
 import {UserFilePersistenceService} from "./UserFilePersistenceService.js";
 import fs from "fs";
 import {myLogger} from "../utils/logger.js";
+import {HttpError} from "../errorHandler/HttpError.js";
 
 
 export class UserServiceEmbeddedImpl implements UserService, UserFilePersistenceService {
@@ -13,11 +14,14 @@ export class UserServiceEmbeddedImpl implements UserService, UserFilePersistence
     })
 
     addUser(user: User): boolean {
-        if (this.users.findIndex((u: User) => u.id === user.id) === -1) {
-            this.users.push(user)
-            return true
+        if (!user.userName || user.userName.trim().length === 0) {
+            throw new HttpError(400, "userName cannot be empty");
         }
-        return false
+        if (user.id && this.users.some(u => u.id === user.id)) {
+            throw new HttpError(409, `User with id ${user.id} already exists`);
+        }
+        this.users.push(user)
+        return true
     }
 
     getAllUsers(): User[] {
@@ -25,25 +29,39 @@ export class UserServiceEmbeddedImpl implements UserService, UserFilePersistence
     }
 
     getUser(userId: number): User | null {
+        if (!userId || isNaN(userId)) {
+            throw new HttpError(400, "Invalid user ID");
+        }
         return this.users.find(user => user.id === userId) || null;
     }
 
     removeUser(userId: number): User | null {
-        const index = this.users.findIndex(user => user.id === userId);
-        if (index !== -1) {
-            const res = this.users.splice(index, 1)
-            return res[0]
+        if (!userId || isNaN(userId)) {
+            throw new HttpError(400, "Invalid user ID");
         }
-        return null
+        const index = this.users.findIndex(user => user.id === userId);
+        if (index === -1) {
+            throw new HttpError(404, `User with id ${userId} not found`);
+        }
+        const res = this.users.splice(index, 1)
+        return res[0]
     }
 
     updateUser(newUserData: User): boolean {
-        const index = this.users.findIndex(user => user.id === newUserData.id);
-        if (index !== -1) {
-            this.users[index] = newUserData
-            return true
+        if (!newUserData.id) {
+            throw new HttpError(400, "User ID is required for update");
         }
-        return false
+
+        if (!newUserData.userName || newUserData.userName.trim().length === 0) {
+            throw new HttpError(400, "userName cannot be empty");
+        }
+        const index = this.users.findIndex(user => user.id === newUserData.id);
+        if (index === -1) {
+            throw new HttpError(404, `User with id ${newUserData.id} not found`);
+        }
+        newUserData.userName = newUserData.userName.trim();
+        this.users[index] = {...newUserData};
+        return true
     }
 
     restoreDataFromFile(): string {

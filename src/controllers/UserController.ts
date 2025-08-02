@@ -2,8 +2,9 @@ import {UserService} from "../services/UserService.js";
 import {User} from "../model/userTypes.js";
 import {myLogger} from "../utils/logger.js";
 import {baseUrl} from "../config/userServerConfig.js";
-import {Request,Response} from "express";
+import {Request, Response} from "express";
 import {parseBody} from "../utils/tools.js";
+import {HttpError} from "../errorHandler/HttpError.js";
 
 export class UserController {
     constructor(private userService: UserService) {
@@ -11,48 +12,67 @@ export class UserController {
 
     async addUser(req: Request, res: Response) {
         const body = req.body as User
-        const isSuccess = this.userService.addUser(body);
-        if (isSuccess) {
-            res.status(200).send('User was added')
-            myLogger.log(`User created with id ${body.id}`)
-            myLogger.save(`User created with id ${body.id}`)
-        } else {
-            res.status(409).send('User already exists')
-            myLogger.save(`Conflict: user with id ${body.id} already exists`)
-            myLogger.save(`Conflict: user with id ${body.id} already exists`)
+        if (body.id) {
+            const existingUser = this.userService.getUser(body.id);
+            if (existingUser) {
+                throw new HttpError(409, `User with id ${body.id} already exists`);
+            }
         }
+        const users = this.userService.getAllUsers() as User[];
+        const existingUserByName = users.find(user => user.userName === body.userName);
+        if (existingUserByName) {
+            throw new HttpError(409, `User with userName '${body.userName}' already exists`);
+        }
+        const isSuccess = this.userService.addUser(body);
+        if (!isSuccess) {
+            throw new HttpError(500, 'Failed to create user');
+        }
+        res.status(200).json({
+            message: 'User was added',
+            user: {id: body.id, userName: body.userName}
+        });
+        myLogger.log(`User created with id ${body.id}`)
+        myLogger.save(`User created with id ${body.id}`)
     }
 
     async updateUser(req: Request, res: Response) {
-        const body = await parseBody(req) as User;
-        if (!body || !body.id) {
-            res.status(400).send("Invalid user data");
-            myLogger.log("Invalid user data")
-            return;
+        const body = req.body as User;
+        if (!body.id) {
+            throw new HttpError(400, "User ID is required for update");
+        }
+        const existingUser = this.userService.getUser(body.id);
+        if (!existingUser) {
+            throw new HttpError(404, `User with id ${body.id} not found`);
         }
         const isUpdated = this.userService.updateUser(body);
-        if (isUpdated) {
-            res.status(200).send("User was updated");
-            myLogger.save(`User with id ${body.id} was updated`)
-        } else {
-            res.status(404).send("User not found");
-            myLogger.save(`Conflict: user with id ${body.id} not found`)
+        if (!isUpdated) {
+            throw new HttpError(500, "Failed to update user");
         }
+
+        res.status(200).json({
+            message: "User was updated",
+            user: {id: body.id, userName: body.userName}
+        });
+        myLogger.save(`User with id ${body.id} was updated`)
+
     }
 
     async removeUser(req: Request, res: Response) {
         const body = req.body as User
-        const isDelete = this.userService.removeUser(body.id);
-        if (isDelete) {
-            res.status(200).send(JSON.stringify(isDelete));
-            // emitter.emit('user_removed')
-            myLogger.log(`User with id ${body.id} was deleted`)
-            myLogger.save(`User with id ${body.id} was deleted`)
-        } else {
-            res.status(404).send("User not found");
-            myLogger.log(`Conflict: user with id ${body.id} not found`)
-            myLogger.save(`Conflict: user with id ${body.id} not found`)
+        if (!body.id) {
+            throw new HttpError(400, "User ID is required for deletion");
         }
+        const isDelete = this.userService.removeUser(body.id);
+        if (!isDelete) {
+            throw new HttpError(404, `User with id ${body.id} not found`);
+        }
+
+        res.status(200).json({
+            message: "User was deleted",
+            deletedUser: isDelete
+        });
+        myLogger.log(`User with id ${body.id} was deleted`);
+        myLogger.save(`User with id ${body.id} was deleted`);
     }
 
     async getAllUsers(req: Request, res: Response) {
@@ -62,23 +82,18 @@ export class UserController {
     }
 
     async getUser(req: Request, res: Response) {
-        const url = new URL (req.url!, baseUrl)
-        const id = url.searchParams.get('id')
+        const id = req.query.id as string;
         if (!id) {
-            res.status(404).send("User not found");
-            myLogger.log("User not found")
-            return
+            throw new HttpError(400, "User ID is required");
         }
 
-        const founded = this.userService.getUser(+id);
-        if (founded !== null) {
-            res.status(200).send(JSON.stringify(founded))
-            myLogger.log(`Fetched user with id: ${id}`)
-        } else {
-            res.status(404).send('User not found')
-            myLogger.log(`User with id ${id} not found`);
+        const user = this.userService.getUser(+id);
+        if (!user) {
+            throw new HttpError(404, `User with id ${id} not found`);
         }
 
+        res.status(200).json(user);
+        myLogger.log(`Fetched user with id: ${id}`);
     }
 
     async getLogArray(req: Request, res: Response) {

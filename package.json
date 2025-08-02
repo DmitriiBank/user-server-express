@@ -17,6 +17,7 @@
     "@types/joi": "^17.2.2",
     "@types/node": "^24.0.14",
     "express-async-handler": "^1.2.0",
+    "express-validation": "^4.1.1",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
