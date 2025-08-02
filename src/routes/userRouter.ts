@@ -2,8 +2,14 @@ import express, {NextFunction, Request, Response} from "express";
 import {userController} from "../server.js";
 import {myLogger} from "../utils/logger.js";
 import asyncHandler from "express-async-handler";
-import {HttpError} from "../errorHandler/HttpError.js";
-import {UserDtoSchema} from "../joiSchemas/userSchemas.js";
+import {
+    CreateUserSchema,
+    UserIdQuerySchema,
+    GetAllUsersSchema,
+    UserUpdateSchema,
+    DeleteUserSchema
+} from "../joiSchemas/userSchemas.js";
+import {validate} from "express-validation";
 
 export const userRouter = express.Router()
 
@@ -17,37 +23,26 @@ userRouter.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-userRouter.get('/', asyncHandler(async (req, res) => {
-    const userDto = req.body
-    const {error} = UserDtoSchema.validate(userDto)
-    if(error) throw new HttpError(400, error.message)
-    if(req.query.id) await userController.getUser(req,res)
-    else await userController.getAllUsers(req, res)
+userRouter.get('/', validate(GetAllUsersSchema), asyncHandler(async (req, res) => {
+    if(req.query.id) {
+        validate(UserIdQuerySchema)(req, res, async () => {
+            await userController.getUser(req, res);
+        });
+    } else {
+        await userController.getAllUsers(req, res);
+    }
 }))
 
-userRouter.post('/',asyncHandler(async(req, res) => {
-    const userDto = req.body
-    const {error} = UserDtoSchema.validate(userDto)
-    if(error) throw new HttpError(400, error.message)
+userRouter.post('/', validate(CreateUserSchema), asyncHandler(async(req, res) => {
     await userController.addUser(req, res)
 }))
 
-// userRouter.get('/user', (req, res) =>{
-//     userController.getUser(req, res)
-// })
-
-userRouter.delete('/', asyncHandler(async (req, res) =>{
-    const userDto = req.body
-    const {error} = UserDtoSchema.validate(userDto)
-    if(error) throw new HttpError(400, error.message)
+userRouter.delete('/', validate(DeleteUserSchema), asyncHandler(async (req, res) =>{
     await userController.removeUser(req, res)
 }))
 
-userRouter.put('/', asyncHandler(async (req, res) => {
-    const userDto = req.body
-    const {error} = UserDtoSchema.validate(userDto)
-    if(error) throw new HttpError(400, error.message)
-    await userController.updateUser(req, res)
+userRouter.put('/',  validate(UserUpdateSchema), asyncHandler(async (req, res) => {
+    await userController.updateUser(req, res);
 }))
 
 userRouter.get('/logs', asyncHandler(async (req: Request, res: Response) => {

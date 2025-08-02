@@ -1,8 +1,6 @@
 import {PostService} from "../services/PostService.js";
-import {parseBody} from "../utils/tools.js";
 import {PostType} from "../model/postTypes.js";
 import {myLogger} from "../utils/logger.js";
-import {baseUrl} from "../config/userServerConfig.js";
 import {Request, Response} from "express";
 import {HttpError} from "../errorHandler/HttpError.js";
 
@@ -76,10 +74,5 @@ export class PostController {
             myLogger.log(`Post with userName: ${userName} not found`);
         }
 
-    }
-
-    async getLogArray(req: Request, res: Response) {
-        const allLogs = myLogger.getLogArray()
-        res.status(200).send(JSON.stringify(allLogs))
     }
 }

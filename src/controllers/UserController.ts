@@ -1,9 +1,7 @@
 import {UserService} from "../services/UserService.js";
 import {User} from "../model/userTypes.js";
 import {myLogger} from "../utils/logger.js";
-import {baseUrl} from "../config/userServerConfig.js";
 import {Request, Response} from "express";
-import {parseBody} from "../utils/tools.js";
 import {HttpError} from "../errorHandler/HttpError.js";
 
 export class UserController {
@@ -98,6 +96,6 @@ export class UserController {
 
     async getLogArray(req: Request, res: Response) {
         const allLogs = myLogger.getLogArray()
-        res.status(200).send(JSON.stringify(allLogs))
+        res.status(200).json(allLogs)
     }
 }

@@ -1,8 +1,8 @@
 import express from "express";
-import {userController} from "../server.js";
+import {myLogger} from "../utils/logger.js";
 
 export const loggerRouter = express.Router()
-
-loggerRouter.get('/', async (req, res) => {
-    // await userController.getLogArray(req, res)
+loggerRouter.get('/', (req, res) => {
+    const logs = myLogger.getLogArray();
+    res.json(logs);
 })
